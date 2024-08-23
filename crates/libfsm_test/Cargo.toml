@@ -1,0 +1,8 @@
+[package]
+name = "libfsm_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libfsm = { path = "../libfsm" }
+libfsm_api = { path = "../libfsm_api" }

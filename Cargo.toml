@@ -1,0 +1,8 @@
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/libfsm_api",
+    "crates/libfsm_test",
+    "crates/libfsm",
+]
