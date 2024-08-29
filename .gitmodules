@@ -1,3 +1,5 @@
 [submodule "crates/libfsm_api/vendor/libfsm"]
 	path = crates/libfsm_api/vendor/libfsm
-	url = https://github.com/katef/libfsm.git
+	url = https://github.com/sw17ch/libfsm.git
+	branch = winfixes
+
