@@ -7,6 +7,8 @@ fn builder() -> cc::Build {
     b.flag_if_supported("-pedantic");
     b.flag_if_supported("--std=c99");
 
+    // it would be nice to get to a point where /WX and -Werror can be added
+
     b
 }
 
