@@ -185,21 +185,44 @@ impl Fsm {
     }
 
     pub fn print(&mut self) -> Result<Vec<u8>, std::io::Error> {
-        let mut v = Vec::new();
-        let stream = fopencookie::IoCStream::writer(&mut v);
-        let ret = unsafe {
-            bindings::fsm_print(
-                stream.as_ptr() as *mut _,
+        // libfsm emits generated code to a `FILE *`. On posix environments, we could use something like `fopencookie()` to create a compatible interface. On Windows, this doesn't exist, and I'm not parti
+
+        // to make this work on windows and on linux, we use a tempfile to hold
+        // the intermediate value, and then read it back out again. ideally, we
+        // update the libfsm API to allow non-FILE ways of emitting the stream.
+        unsafe {
+            let tmp = libc::tmpfile();
+            if tmp.is_null() {
+                return Err(std::io::Error::last_os_error());
+            }
+            let ret = bindings::fsm_print(
+                tmp as *mut _,
                 self.fsm,
                 null(),
                 null(),
                 fsm_print_lang_FSM_PRINT_RUST,
-            )
-        };
-        if ret != 0 {
-            Err(std::io::Error::last_os_error())
-        } else {
-            Ok(v)
+            );
+            if ret != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            let pos = libc::ftell(tmp);
+            if pos < 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            let written_length = pos as usize;
+
+            libc::rewind(tmp);
+            let mut buf = vec![0u8; written_length];
+            let ret = libc::fread(buf.as_mut_ptr() as *mut _, 1, written_length, tmp);
+
+            if ret == 0 && libc::ferror(tmp) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            buf.truncate(ret);
+
+            libc::fclose(tmp);
+
+            Ok(buf)
         }
     }
 }

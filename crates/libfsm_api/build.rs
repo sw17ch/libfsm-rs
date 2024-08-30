@@ -1,14 +1,21 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+fn builder() -> cc::Build {
+    let mut b = cc::Build::new();
+
+    b.flag_if_supported("-pedantic");
+    b.flag_if_supported("--std=c99");
+
+    b
+}
+
 fn build_fsm() {
     let lexer_c = PathBuf::from("vendor/libfsm/src/libfsm/lexer.c");
 
     // There are a few special files that need their own construction.
-    let lexer_o = cc::Build::new()
+    let lexer_o = builder()
         .file(&lexer_c)
-        .flag("--std=c99")
-        .flag("-pedantic")
         .define("LX_HEADER", "\"lexer.h\"")
         .warnings(false)
         .warnings_into_errors(false)
@@ -32,12 +39,10 @@ fn build_fsm() {
 
     let cfiles = cfiles.collect::<Vec<_>>();
 
-    cc::Build::new()
+    builder()
         .include("vendor/libfsm/include/")
         .include("vendor/libfsm/src/")
         .include("vendor/libfsm/src/libfsm/")
-        .flag("--std=c99")
-        .flag("-pedantic")
         .files(cfiles)
         .objects(lexer_o)
         .compile("fsm");
@@ -52,10 +57,8 @@ fn build_re_dialect(which: &str) -> Vec<PathBuf> {
     let mut ret = vec![];
 
     ret.extend(
-        cc::Build::new()
+        builder()
             .file(&lexer)
-            .flag("--std=c99")
-            .flag("-pedantic")
             .define("LX_HEADER", "\"lexer.h\"")
             .include("vendor/libfsm/include/")
             .include("vendor/libfsm/src/")
@@ -64,26 +67,23 @@ fn build_re_dialect(which: &str) -> Vec<PathBuf> {
             .compile_intermediates(),
     );
     ret.extend({
-        let mut build = cc::Build::new();
+        let mut build = builder();
         build
-            .file(&parser)
-            .flag("--std=c99")
-            .flag("-pedantic")
-            .define("DIALECT", which)
             .include("vendor/libfsm/include/")
             .include("vendor/libfsm/src/")
             .warnings(false)
             .warnings_into_errors(false);
+
+        build.file(&parser).define("DIALECT", which);
+
         if which == "pcre" {
             build.define("PCRE_DIALECT", "1");
         }
         build.compile_intermediates()
     });
     ret.extend(
-        cc::Build::new()
+        builder()
             .file(&dialect)
-            .flag("--std=c99")
-            .flag("-pedantic")
             .include("vendor/libfsm/include/")
             .include("vendor/libfsm/src/")
             .warnings(false)
@@ -122,12 +122,10 @@ fn build_re() {
 
     let cfiles = cfiles.collect::<Vec<_>>();
 
-    cc::Build::new()
+    builder()
         .include("vendor/libfsm/include/")
         .include("vendor/libfsm/src/")
         .include("vendor/libfsm/src/libre/")
-        .flag("--std=c99")
-        .flag("-pedantic")
         .define("LF_HEADER", "\"class.h\"")
         .define("LX_HEADER", "\"lexer.h\"")
         .files(cfiles)
